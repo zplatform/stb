@@ -904,6 +904,10 @@ static int      stbi__pnm_info(stbi__context *s, int *x, int *y, int *comp);
 static int      stbi__webp_test(stbi__context *s);
 #endif
 
+#ifndef STBI_NO_JXL
+static int      stbi__jxl_test(stbi__context *s);
+#endif
+
 // stb_image uses ints pervasively, including for offset calculations.
 // therefore the largest decoded image size we can support with the
 // current code, even on 64-bit targets, is INT_MAX. this is not a
@@ -8242,6 +8246,37 @@ static int stbi__webp_test(stbi__context *s)
     return r;
 }
 #endif
+
+static int stbi__jxl_test_codestream(stbi__context *s)
+{
+    if (stbi__get8(s) != 0xff || stbi__get8(s) != 0x0A ) return 0;
+    return 1;
+}
+
+static int stbi__jxl_test_container(stbi__context *s)
+{
+    //00 00 00 0C 4A 58 4C 20 0D 0A 87 0A
+    static const stbi_uc jxl_sig[12] = {0,0,0,12,74,88,76,32,13,10,135,10};
+    int i;
+    for (i=0; i < 12; ++i)
+        if (stbi__get8(s) != jxl_sig[i]) return 0;
+    return 1;
+}
+
+static int stbi__jxl_test(stbi__context *s)
+{
+    int r = stbi__jxl_test_codestream(s);
+    stbi__rewind(s);
+    
+    if (!r)
+    {
+        r = stbi__jxl_test_container(s);
+        stbi__rewind(s);
+    }
+        
+    
+    return r;
+}
 
 static int stbi__info_main(stbi__context *s, int *x, int *y, int *comp)
 {
